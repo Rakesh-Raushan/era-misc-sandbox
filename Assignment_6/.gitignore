@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.env/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+!ERA_v3_session6_assignment.ipynb
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.project
+.pydevproject
+.settings/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+*.log
+
+# PyTorch specific
+*.pth
+*.pt
+*.ckpt
+
+# Data files
+data/
+datasets/
+*.csv
+*.h5
+*.pkl
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Distribution / packaging
+.Python
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Misc
+*.bak
+*.tmp
+.env
+.env.local
+.env.*.local 
