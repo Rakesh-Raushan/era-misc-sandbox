@@ -3,8 +3,12 @@ name: Model Architecture Checks
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'Assignment_6/**'  # Triggers only if files in Assignment_6/ are changed
   pull_request:
     branches: [ main ]
+    paths:
+      - 'Assignment_6/**'  # Triggers only if files in Assignment_6/ are changed
 
 jobs:
   test:
@@ -21,8 +25,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r Assignment_6/requirements.txt  # Update path to requirements.txt inside Assignment_6
     
     - name: Run tests
       run: |
-        pytest test_model.py -v 
+        pytest Assignment_6/test_model.py -v  # Update path to test_model.py inside Assignment_6
