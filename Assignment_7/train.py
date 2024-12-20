@@ -106,7 +106,7 @@ def main():
     # try step scheduler
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=4, gamma=0.3)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='max', factor=0.5, patience=0
+        optimizer, mode='max', factor=0.4, patience=0
     )
     
     # Training loop
