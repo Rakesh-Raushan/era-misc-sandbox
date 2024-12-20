@@ -1,11 +1,16 @@
 import torch
 import torch.optim as optim
 from torchvision import datasets, transforms
-from models.model import Model_1, Model_2, Model_3, Model_4
+from models.model import Model_1, Model_2, Model_3
 from utils.utils import train, test
 import random
 import numpy as np
 from torchsummary import summary
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
 
 def main():
     # Training settings
@@ -42,14 +47,23 @@ def main():
         device = torch.device("cpu")
         
     # DataLoader kwargs
-    train_kwargs = {'batch_size': batch_size}
-    test_kwargs = {'batch_size': batch_size}
+    train_kwargs = {
+        'batch_size': batch_size,
+        'worker_init_fn': seed_worker,
+        'generator': torch.Generator().manual_seed(seed),
+        'shuffle': True
+    }
+    test_kwargs = {
+        'batch_size': batch_size,
+        'worker_init_fn': seed_worker,
+        'generator': torch.Generator().manual_seed(seed),
+        'shuffle': False
+    }
     
     if use_cuda or use_mps:
         cuda_kwargs = {
-            'num_workers': 0,
-            'pin_memory': True,
-            'shuffle': True
+            'num_workers': 8,
+            'pin_memory': True
         }
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
@@ -79,21 +93,21 @@ def main():
     # Initialize model
     model = Model_3()
     print(f"training model3 with total trainable params: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
-    print(f"\nmodel summary: {summary(model, (1, 28, 28))}")
+    print(f"\nmodel summary: {summary(model, (1, 28, 28), device='cpu')}")
 
     # Send model to device
     model.to(device)
     
     # Optimizer
-    # optimizer = optim.Adam(model.parameters(), lr=lr)#, weight_decay=1e-7)
-    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-9)
+    # optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     
     # Learning rate scheduler
     # try step scheduler
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=4, gamma=0.3)
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    #     optimizer, mode='max', factor=0.2, patience=0
-    # )
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='max', factor=0.5, patience=0
+    )
     
     # Training loop
     best_accuracy = 0
@@ -103,14 +117,14 @@ def main():
         test_loss, accuracy = test(model, device, test_loader)
         
         # Step scheduler
-        # scheduler.step(accuracy)
+        scheduler.step(accuracy)
         current_lr = optimizer.param_groups[0]['lr']
 
         # try step scheduler
         # scheduler.step()
         # current_lr = scheduler.get_last_lr()[0]
         
-        print(f"Epoch {epoch}, test_acc: {accuracy:.1f} Learning Rate: {current_lr:.6f}")
+        print(f"Test_acc: {accuracy:.1f} Learning Rate: {current_lr:.6f}")
 
         if accuracy > best_accuracy:
             best_accuracy = accuracy
