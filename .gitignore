@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Python
 __pycache__/
 *.py[cod]
@@ -147,3 +148,30 @@ htmlcov/
 .env
 .env.local
 .env.*.local 
+=======
+data/
+checkpoints/
+runs/
+imagenetmini-1000/
+*.pth
+*.pth.tar
+*.pth.tar.gz
+*.pth.tar.xz
+*.pth.tar.bz2
+*.pth.tar.lzma
+*.pth.tar.lz4
+*.pth.tar.zstd
+*.zip
+*.json
+*.csv
+*.log
+*.yaml
+*.yml
+*.json
+*.csv
+*.log
+*.yaml
+*.yml
+training_script.py
+setup.ipynb
+>>>>>>> 8177df4 (Initial commit)
