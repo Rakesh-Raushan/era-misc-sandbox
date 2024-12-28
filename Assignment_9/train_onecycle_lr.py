@@ -21,13 +21,13 @@ import torch.nn.functional as F
 
 class Params:
     def __init__(self):
-        self.batch_size = 32
+        self.batch_size = 128
         self.name = "resnet_50_onecycle"
-        self.workers = 4
-        self.max_lr = 0.1  # Maximum learning rate
+        self.workers = 12
+        self.max_lr = 0.11  # Maximum learning rate as per lr finder
         self.momentum = 0.9
         self.weight_decay = 1e-4
-        self.epochs = 10
+        self.epochs = 100
         self.pct_start = 0.3  # Percentage of training where LR increases
         self.div_factor = 25.0  # Initial LR = max_lr/div_factor
         self.final_div_factor = 1e4  # Final LR = max_lr/final_div_factor
@@ -117,8 +117,8 @@ def test(dataloader, model, loss_fn, epoch, writer, train_dataloader, calc_acc5=
 if __name__ == "__main__":
     params = Params()
 
-    training_folder_name = './data/imagenet-mini/train'
-    val_folder_name = './data/imagenet-mini/val'
+    training_folder_name = '/mnt/imagenet/ILSVRC/Data/CLS-LOC/train'
+    val_folder_name = '/mnt/imagenet/ILSVRC/Data/CLS-LOC/val'
 
     train_transformation = transforms.Compose([
         transforms.ToTensor(),
