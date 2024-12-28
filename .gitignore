@@ -1,5 +1,6 @@
 <<<<<<< HEAD
 # Python
+/Assignment_9/venv/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -154,7 +155,7 @@ checkpoints/
 runs/
 imagenetmini-1000/
 __pycache__/
-lr_finder_plots/
+#lr_finder_plots/
 *.pth
 *.pth.tar
 *.pth.tar.gz
