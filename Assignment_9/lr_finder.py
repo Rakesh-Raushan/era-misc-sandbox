@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import os
 
-def find_lr(start_lr=1e-7, end_lr=10, num_iter=200, output_dir='lr_finder_plots'):
+def find_lr(start_lr=1e-7, end_lr=10, num_iter=100, output_dir='lr_finder_plots'):
     params = Params()
     print(f"Find LR with params: Start_lr: {start_lr}, End_lr: {end_lr}, Num_iter: {num_iter}")
     device = (
@@ -24,7 +24,7 @@ def find_lr(start_lr=1e-7, end_lr=10, num_iter=200, output_dir='lr_finder_plots'
 
     print(f"Using {device} device")
     
-    training_folder_name = './data/imagenet-mini/train'
+    training_folder_name = './ILSVRC/Data/CLS-LOC/train'
     train_transformation = transforms.Compose([
         transforms.ToTensor(),
         transforms.RandomResizedCrop(224, interpolation=transforms.InterpolationMode.BILINEAR, antialias=True),
