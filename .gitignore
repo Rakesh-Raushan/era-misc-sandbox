@@ -153,6 +153,8 @@ data/
 checkpoints/
 runs/
 imagenetmini-1000/
+__pycache__/
+lr_finder_plots/
 *.pth
 *.pth.tar
 *.pth.tar.gz
