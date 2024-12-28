@@ -24,7 +24,7 @@ def find_lr(start_lr=1e-7, end_lr=10, num_iter=100, output_dir='lr_finder_plots'
 
     print(f"Using {device} device")
     
-    training_folder_name = './ILSVRC/Data/CLS-LOC/train'
+    training_folder_name = '/mnt/imagenet/ILSVRC/Data/CLS-LOC/train'
     train_transformation = transforms.Compose([
         transforms.ToTensor(),
         transforms.RandomResizedCrop(224, interpolation=transforms.InterpolationMode.BILINEAR, antialias=True),
