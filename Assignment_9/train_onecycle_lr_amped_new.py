@@ -28,13 +28,13 @@ logger.setLevel(logging.INFO)
 
 class Params:
     def __init__(self):
-        self.batch_size = 256
+        self.batch_size = 512
         self.name = "resnet_50_onecycle"
         self.workers = 12
         self.max_lr = 0.11
         self.momentum = 0.9
         self.weight_decay = 1e-4
-        self.epochs = 100
+        self.epochs = 30
         self.pct_start = 0.3
         self.div_factor = 25.0
         self.final_div_factor = 1e4
@@ -190,8 +190,13 @@ if __name__ == "__main__":
     log_dir = os.path.join("logs", params.name)
     metric_logger = MetricLogger(log_dir)
 
-    training_folder_name = '/mnt/imagenet/ILSVRC/Data/CLS-LOC/train'
-    val_folder_name = '/mnt/imagenet/ILSVRC/Data/CLS-LOC/val'
+    #aws paths
+    # training_folder_name = '/mnt/imagenet/ILSVRC/Data/CLS-LOC/train'
+    # val_folder_name = '/mnt/imagenet/ILSVRC/Data/CLS-LOC/val'
+
+    #runpod paths
+    training_folder_name = '/workspace/era-misc-sandbox/Assignment_9/imagenet/ILSVRC/Data/CLS-LOC/train'
+    val_folder_name = '/workspace/era-misc-sandbox/Assignment_9/imagenet/ILSVRC/Data/CLS-LOC/val'
 
     train_transformation = transforms.Compose([
         transforms.ToTensor(),
@@ -228,7 +233,7 @@ if __name__ == "__main__":
 
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
-        batch_size=32,
+        batch_size=512,
         num_workers=params.workers,
         shuffle=False,
         pin_memory=True

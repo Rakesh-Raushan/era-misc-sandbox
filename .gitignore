@@ -46,8 +46,8 @@ mnist/
 *.gz
 
 # Logs
-logs/
-*.log
+#logs/
+#*.log
 
 # Environment
 .env
@@ -116,7 +116,7 @@ env/
 # OS specific files
 .DS_Store
 Thumbs.db
-*.log
+#*.log
 
 # PyTorch specific
 *.pth
@@ -152,7 +152,7 @@ htmlcov/
 =======
 data/
 checkpoints/
-runs/
+#runs/
 imagenetmini-1000/
 __pycache__/
 #lr_finder_plots/
@@ -165,14 +165,15 @@ __pycache__/
 *.pth.tar.lz4
 *.pth.tar.zstd
 *.zip
-*.json
+#*.json
 *.csv
-*.log
+#*.log
 *.yaml
 *.yml
-*.json
+#*.json
+#!/Assignment_9/logs/resnet_50_onecycle/training_log.json 
 *.csv
-*.log
+#*.log
 *.yaml
 *.yml
 training_script.py

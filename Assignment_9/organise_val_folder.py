@@ -3,8 +3,8 @@ import shutil
 import xml.etree.ElementTree as ET
 
 # Set the absolute paths to your 'val' folder and annotation folder
-val_folder = '/mnt/imagenet/ILSVRC/Data/CLS-LOC/val'  # Path to the val images
-annotation_folder = '/mnt/imagenet/ILSVRC/Annotations/CLS-LOC/val'  # Path to the annotation XML files
+val_folder = '/workspace/era-misc-sandbox/Assignment_9/imagenet/ILSVRC/Data/CLS-LOC/val'  # Path to the val images
+annotation_folder = '/workspace/era-misc-sandbox/Assignment_9/imagenet/ILSVRC/Annotations/CLS-LOC/val'  # Path to the annotation XML files
 
 # Function to parse the XML annotation files and extract the class ID
 def get_class_id_from_xml(xml_file):
