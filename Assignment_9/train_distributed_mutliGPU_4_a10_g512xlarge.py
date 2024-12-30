@@ -24,20 +24,36 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.multiprocessing as mp
-
+from torch.utils.tensorboard import SummaryWriter
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
+import signal
+import sys
+
+import torch.distributed as dist
+#dist.destroy_process_group()
+
+def signal_handler(sig, frame):
+    print("Cleaning up...")
+    dist.destroy_process_group()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
+
 class Params:
     def __init__(self):
-        self.batch_size = 512
-        self.name = "resnet_50_onecycle"
+        self.batch_size = 256
+        self.name = "resnet_50_onecycle_distributed"
         self.workers = 12
         self.max_lr = 0.175
         self.momentum = 0.9
         self.weight_decay = 1e-4
-        self.epochs = 30
+        self.epochs = 50
         self.pct_start = 0.3
         self.div_factor = 25.0
         self.final_div_factor = 1e4
@@ -225,8 +241,8 @@ def main_worker(rank, world_size, params):
     log_dir = os.path.join("logs", params.name)
     metric_logger = MetricLogger(log_dir, rank)
 
-    training_folder_name = '/workspace/era-misc-sandbox/Assignment_9/imagenet/ILSVRC/Data/CLS-LOC/train'
-    val_folder_name = '/workspace/era-misc-sandbox/Assignment_9/imagenet/ILSVRC/Data/CLS-LOC/val'
+    training_folder_name = '/mnt/imagenet-volume/ILSVRC/Data/CLS-LOC/train'
+    val_folder_name = '/mnt/imagenet-volume/ILSVRC/Data/CLS-LOC/val'
 
     train_transformation = transforms.Compose([
         transforms.ToTensor(),
@@ -267,7 +283,7 @@ def main_worker(rank, world_size, params):
     
     val_loader = DataLoader(
         val_dataset,
-        batch_size=512,
+        batch_size=params.batch_size,
         sampler=val_sampler,
         num_workers=params.workers,
         pin_memory=True
