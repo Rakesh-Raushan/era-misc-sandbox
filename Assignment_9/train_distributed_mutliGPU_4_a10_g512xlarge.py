@@ -235,142 +235,163 @@ def test(rank, dataloader, model, loss_fn, epoch, writer, train_dataloader, metr
         logger.info(f"Test Epoch {epoch+1} - Loss: {test_loss:.4f}, Acc: {accuracy:.2f}%, Top-5 Acc: {accuracy_top5:.2f}%")
 
 def main_worker(rank, world_size, params):
-    setup(rank, world_size)
+    try:
+        setup(rank, world_size)
+
+        # create required directories at the start (only on rank 0)
+        if rank ==0:
+            os.makedirs(os.path.join("checkpoints", params.name), exist_ok=True)
+            os.makedirs(os.path.join("logs", params.name), exist_ok=True)
+            os.makedirs(os.path.join("runs", params.name), exist_ok=True)
+
+        # Wait for rank 0 to create directories
+        dist.barrier()
+
     
-    # Create metric logger
-    log_dir = os.path.join("logs", params.name)
-    metric_logger = MetricLogger(log_dir, rank)
+        # Create metric logger
+        log_dir = os.path.join("logs", params.name)
+        metric_logger = MetricLogger(log_dir, rank)
 
-    training_folder_name = '/mnt/imagenet-volume/ILSVRC/Data/CLS-LOC/train'
-    val_folder_name = '/mnt/imagenet-volume/ILSVRC/Data/CLS-LOC/val'
+        training_folder_name = '/mnt/imagenet-volume/ILSVRC/Data/CLS-LOC/train'
+        val_folder_name = '/mnt/imagenet-volume/ILSVRC/Data/CLS-LOC/val'
 
-    train_transformation = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.RandomResizedCrop(224, interpolation=transforms.InterpolationMode.BILINEAR, antialias=True),
-        transforms.RandomHorizontalFlip(0.5),
-        transforms.Normalize(mean=[0.485, 0.485, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+        train_transformation = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.RandomResizedCrop(224, interpolation=transforms.InterpolationMode.BILINEAR, antialias=True),
+            transforms.RandomHorizontalFlip(0.5),
+            transforms.Normalize(mean=[0.485, 0.485, 0.406], std=[0.229, 0.224, 0.225])
+            ])
 
-    train_dataset = torchvision.datasets.ImageFolder(
-        root=training_folder_name,
-        transform=train_transformation
-    )
+        train_dataset = torchvision.datasets.ImageFolder(
+            root=training_folder_name,
+            transform=train_transformation
+            )
     
-    # Use DistributedSampler
-    train_sampler = DistributedSampler(train_dataset)
+        # Use DistributedSampler
+        train_sampler = DistributedSampler(train_dataset)
 
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=params.batch_size,
-        sampler=train_sampler,
-        num_workers=params.workers,
-        pin_memory=True
-    )
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=params.batch_size,
+            sampler=train_sampler,
+            num_workers=params.workers,
+            pin_memory=True
+            )
 
-    val_transformation = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Resize(size=256, antialias=True),
-        transforms.CenterCrop(224),
-        transforms.Normalize(mean=[0.485, 0.485, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+        val_transformation = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Resize(size=256, antialias=True),
+            transforms.CenterCrop(224),
+            transforms.Normalize(mean=[0.485, 0.485, 0.406], std=[0.229, 0.224, 0.225])
+            ])
     
-    val_dataset = torchvision.datasets.ImageFolder(
-        root=val_folder_name,
-        transform=val_transformation
-    )
+        val_dataset = torchvision.datasets.ImageFolder(
+            root=val_folder_name,
+            transform=val_transformation
+            )
 
-    val_sampler = DistributedSampler(val_dataset, shuffle=False)
+        val_sampler = DistributedSampler(val_dataset, shuffle=False)
     
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=params.batch_size,
-        sampler=val_sampler,
-        num_workers=params.workers,
-        pin_memory=True
-    )
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=params.batch_size,
+            sampler=val_sampler,
+            num_workers=params.workers,
+            pin_memory=True
+            )
 
-    # Wrap your model in DDP after moving to GPU
-    torch.cuda.set_device(rank)
+        # Wrap your model in DDP after moving to GPU
+        torch.cuda.set_device(rank)
 
-    num_classes = len(train_dataset.classes)
-    model = ResNet50(num_classes=num_classes).cuda(rank)
-    model = DDP(model, device_ids=[rank])
+        num_classes = len(train_dataset.classes)
+        model = ResNet50(num_classes=num_classes).cuda(rank)
+        model = DDP(model, device_ids=[rank])
 
-    loss_fn = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), 
+        loss_fn = nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(model.parameters(), 
                                lr=params.max_lr/params.div_factor,
                                momentum=params.momentum,
                                weight_decay=params.weight_decay)
 
-    scaler = GradScaler()
+        scaler = GradScaler()
 
-    steps_per_epoch = len(train_loader)
-    total_steps = params.epochs * steps_per_epoch
+        steps_per_epoch = len(train_loader)
+        total_steps = params.epochs * steps_per_epoch
 
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(
-        optimizer,
-        max_lr=params.max_lr,
-        total_steps=total_steps,
-        pct_start=params.pct_start,
-        div_factor=params.div_factor,
-        final_div_factor=params.final_div_factor
-    )
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer,
+            max_lr=params.max_lr,
+            total_steps=total_steps,
+            pct_start=params.pct_start,
+            div_factor=params.div_factor,
+            final_div_factor=params.final_div_factor
+            )
 
-    start_epoch = 0
-    checkpoint_path = os.path.join("checkpoints", params.name, f"checkpoint.pth")
+        start_epoch = 0
+        checkpoint_path = os.path.join("checkpoints", params.name, f"checkpoint.pth")
     
-    # Modify checkpoint loading to handle device mapping
-    if os.path.exists(checkpoint_path):
-        print(f"Rank {rank}: Resuming training from checkpoint")
-        map_location = {'cuda:%d' % 0: 'cuda:%d' % rank}
-        checkpoint = torch.load(checkpoint_path, map_location=map_location)
-        model.module.load_state_dict(checkpoint["model"])
-        start_epoch = checkpoint["epoch"] + 1
-        optimizer.load_state_dict(checkpoint["optimizer"])
-        scheduler.load_state_dict(checkpoint["scheduler"])
-        scaler.load_state_dict(checkpoint["scaler"])
-        assert params == checkpoint["params"]
+        # Modify checkpoint loading to handle device mapping
+        if os.path.exists(checkpoint_path):
+            print(f"Rank {rank}: Resuming training from checkpoint")
+            map_location = {'cuda:%d' % 0: 'cuda:%d' % rank}
+            checkpoint = torch.load(checkpoint_path, map_location=map_location)
+            model.module.load_state_dict(checkpoint["model"])
+            start_epoch = checkpoint["epoch"] + 1
+            optimizer.load_state_dict(checkpoint["optimizer"])
+            scheduler.load_state_dict(checkpoint["scheduler"])
+            scaler.load_state_dict(checkpoint["scaler"])
+            assert params == checkpoint["params"]
 
-    writer = SummaryWriter('runs/' + params.name) if rank == 0 else None
+        writer = SummaryWriter('runs/' + params.name) if rank == 0 else None
     
-    test(rank, val_loader, model, loss_fn, epoch=0, writer=writer, train_dataloader=train_loader, 
-         metric_logger=metric_logger, calc_acc5=True)
-    
-    if rank == 0:
-        print("Starting training")
-    
-    for epoch in range(start_epoch, params.epochs):
-        train_sampler.set_epoch(epoch)
-        val_sampler.set_epoch(epoch)
-        
-        if rank == 0:
-            print(f"Epoch {epoch}")
-            
-        train(rank, train_loader, model, loss_fn, optimizer, scheduler, epoch=epoch, writer=writer, 
-              scaler=scaler, metric_logger=metric_logger)
-        
-        if rank == 0:
-            checkpoint = {
-                "model": model.module.state_dict(),
-                "optimizer": optimizer.state_dict(),
-                "scheduler": scheduler.state_dict(),
-                "scaler": scaler.state_dict(),
-                "epoch": epoch,
-                "params": params
-            }
-            torch.save(checkpoint, os.path.join("checkpoints", params.name, f"model_{epoch}.pth"))
-            torch.save(checkpoint, os.path.join("checkpoints", params.name, f"checkpoint.pth"))
-        
-        test(rank, val_loader, model, loss_fn, epoch + 1, writer, train_dataloader=train_loader,
+        test(rank, val_loader, model, loss_fn, epoch=0, writer=writer, train_dataloader=train_loader, 
              metric_logger=metric_logger, calc_acc5=True)
     
-    cleanup()
+        if rank == 0:
+            print("Starting training")
+    
+        for epoch in range(start_epoch, params.epochs):
+            train_sampler.set_epoch(epoch)
+            val_sampler.set_epoch(epoch)
+        
+            if rank == 0:
+                print(f"Epoch {epoch}")
+            
+            train(rank, train_loader, model, loss_fn, optimizer, scheduler, epoch=epoch, writer=writer, 
+                scaler=scaler, metric_logger=metric_logger)
+        
+            if rank == 0:
+                checkpoint = {
+                    "model": model.module.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "scheduler": scheduler.state_dict(),
+                    "scaler": scaler.state_dict(),
+                    "epoch": epoch,
+                    "params": params
+                    }
+                torch.save(checkpoint, os.path.join("checkpoints", params.name, f"model_{epoch}.pth"))
+                torch.save(checkpoint, os.path.join("checkpoints", params.name, f"checkpoint.pth"))
+        
+            test(rank, val_loader, model, loss_fn, epoch + 1, writer, train_dataloader=train_loader,
+                 metric_logger=metric_logger, calc_acc5=True)
+    
+    except Exception as e:
+        print(f"Error in rank {rank}: {str(e)}")
+        raise e
+    finally:
+        cleanup()
 
 if __name__ == "__main__":
     params = Params()
     
     world_size = torch.cuda.device_count()
-    mp.spawn(main_worker,
-            args=(world_size, params),
-            nprocs=world_size,
-            join=True)
+    try:
+        mp.spawn(main_worker,
+                args=(world_size, params),
+                nprocs=world_size,
+                join=True)
+    except Exception as e:
+        print(f"Error in main process: {str(e)}")
+        # Ensure all processes are terminated
+        import sys
+        sys.exit(1)
