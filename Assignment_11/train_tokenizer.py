@@ -27,7 +27,7 @@ def main():
     raw_text = load_sanskrit_data()
     
     # Initialize and train tokenizer
-    tokenizer = SanskritBPETokenizer(vocab_size=100)
+    tokenizer = SanskritBPETokenizer(vocab_size=4999)
     tokenizer.fit(raw_text)
     
     print(f"Compression ratio: {tokenizer.compression_ratio}")

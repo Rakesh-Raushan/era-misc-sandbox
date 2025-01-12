@@ -65,6 +65,30 @@ class SanskritBPETokenizer:
         self.inverse_vocab = reverse_merges
         self.compression_ratio = round(len(tokens)/len(ids),1)
     
+    def merge_tokens(self, ids, positions=None):
+        """Helper method to apply merges consistently"""
+        i = 0
+        while i < len(ids) - 1:
+            merged = False
+            for pair, merge_idx in self.merges.items():
+                if ids[i] == pair[0] and ids[i + 1] == pair[1]:
+                    if positions is not None:
+                        # Update positions if tracking them
+                        merged_start = positions[i][0]
+                        merged_end = positions[i + 1][1]
+                        positions[i] = (merged_start, merged_end)
+                        positions.pop(i + 1)
+                    
+                    # Update ids
+                    ids[i] = merge_idx
+                    ids.pop(i + 1)
+                    
+                    merged = True
+                    break
+            if not merged:
+                i += 1
+        return ids
+
     def encode(self, raw_texts: str) -> List[int]:
         texts = re.sub(f'[^{self.pattern}]', '', raw_texts)
         
@@ -80,13 +104,35 @@ class SanskritBPETokenizer:
             if char_id is not None:
                 ids.append(char_id)
             else:
-                # Handle unknown characters (you might want to add a special token for this)
+                # Handle unknown characters
                 continue
         
-        # Apply merges
-        for pair, idx in self.merges.items():
-            ids = self.merge(ids, pair, idx, self.inverse_vocab)
-        return ids
+        # Apply merges using the shared method
+        return self.merge_tokens(ids)
     
     def decode(self, ids: List[int]) -> str:
         return ''.join(self.inverse_vocab[id] for id in ids)  
+    
+    def encode_with_positions(self, raw_texts: str) -> Tuple[List[int], List[Tuple[int, int]]]:
+        texts = re.sub(f'[^{self.pattern}]', '', raw_texts)
+        
+        # Initialize with character positions
+        ids = []
+        positions = []  # List of (start, end) positions
+        current_pos = 0
+        
+        # First pass: encode individual characters and track their positions
+        for char in texts:
+            char_id = None
+            for id, token in self.inverse_vocab.items():
+                if token == char:
+                    char_id = id
+                    break
+            if char_id is not None:
+                ids.append(char_id)
+                positions.append((current_pos, current_pos + len(char)))
+            current_pos += len(char)
+        
+        # Apply merges using the shared method
+        self.merge_tokens(ids, positions)
+        return ids, positions
