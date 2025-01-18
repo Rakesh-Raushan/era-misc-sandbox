@@ -39,8 +39,8 @@ def generate_text(prompt, max_tokens=500, temperature=0.8, top_k=40):
             output_sequence.append(next_token.item())
             input_ids = torch.cat([input_ids, next_token], dim=1)
             
-            # Stop if we generate a newline
-            if next_token.item() == enc.encode('\n')[0]:
+            # Stop if we generate an EOS token (50256 for GPT-2 tokenizer)
+            if next_token.item() == 50256:
                 break
     
     # Decode and return the generated text
@@ -51,14 +51,14 @@ def generate_text(prompt, max_tokens=500, temperature=0.8, top_k=40):
 iface = gr.Interface(
     fn=generate_text,
     inputs=[
-        gr.Textbox(label="Prompt", placeholder="Enter your prompt here..."),
-        gr.Slider(minimum=1, maximum=5000, value=1000, step=1, label="Max-Tokens"),
-        gr.Slider(minimum=0.1, maximum=2.0, value=0.8, step=0.1, label="Temperature"),
-        gr.Slider(minimum=1, maximum=1000, value=40, step=1, label="Top-K")
+        gr.Textbox(label="Prompt", placeholder="Enter your prompt here...", lines=4),
+        gr.Slider(minimum=1, maximum=1000, value=100, step=1, label="Max Tokens (hard limit)"),
+        gr.Slider(minimum=0.1, maximum=2.0, value=0.8, step=0.1, label="Temperature (higher = more random)"),
+        gr.Slider(minimum=1, maximum=100, value=40, step=1, label="Top-K (limits token choices)")
     ],
-    outputs=gr.Textbox(label="Generated Text"),
+    outputs=gr.Textbox(label="Generated Text", lines=10),
     title="GPT Text Generator",
-    description="Enter a prompt and generate text using a custom-trained GPT model."
+    description="Enter a prompt to generate text. Generation will stop at EOS token or when max tokens is reached."
 )
 
 if __name__ == "__main__":
