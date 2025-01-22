@@ -36,6 +36,7 @@ class LlamaAttention(nn.Module):
         self.hidden_size = config["hidden_size"]
         self.num_attention_heads = config["num_attention_heads"]
         self.num_key_value_heads = config["num_key_value_heads"]
+        self.num_key_value_groups = self.num_attention_heads // self.num_key_value_heads
         self.head_dim = self.hidden_size // self.num_attention_heads
         
         self.q_proj = nn.Linear(self.hidden_size, self.num_attention_heads * self.head_dim, bias=False)
@@ -43,7 +44,7 @@ class LlamaAttention(nn.Module):
         self.v_proj = nn.Linear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=False)
         self.o_proj = nn.Linear(self.hidden_size, self.hidden_size, bias=False)
 
-    def forward(self, hidden_states, attention_mask=None, position_ids=None, past_key_value=None):
+    def forward(self, hidden_states, attention_mask=None):
         batch_size, seq_length = hidden_states.shape[:2]
         
         query_states = self.q_proj(hidden_states)
@@ -54,13 +55,35 @@ class LlamaAttention(nn.Module):
         key_states = key_states.view(batch_size, seq_length, self.num_key_value_heads, self.head_dim)
         value_states = value_states.view(batch_size, seq_length, self.num_key_value_heads, self.head_dim)
         
+        # Prepare attention mask
+        if attention_mask is not None:
+            # Create causal mask
+            causal_mask = torch.tril(torch.ones((seq_length, seq_length), device=hidden_states.device))
+            # Combine with attention mask
+            attention_mask = attention_mask.view(batch_size, 1, 1, seq_length)
+            causal_mask = causal_mask.view(1, 1, seq_length, seq_length)
+            mask = attention_mask * causal_mask
+            # Convert to additive mask
+            mask = (1.0 - mask) * torch.finfo(hidden_states.dtype).min
+            mask = mask.expand(batch_size, self.num_attention_heads, seq_length, seq_length)
+        
+        # Transpose for attention computation
+        query_states = query_states.transpose(1, 2)  # (batch, n_heads, seq_len, head_dim)
+        key_states = key_states.transpose(1, 2)      # (batch, n_kv_heads, seq_len, head_dim)
+        value_states = value_states.transpose(1, 2)  # (batch, n_kv_heads, seq_len, head_dim)
+        
+        # Repeat k/v heads for multi-query attention
+        key_states = torch.repeat_interleave(key_states, dim=1, repeats=self.num_key_value_groups)
+        value_states = torch.repeat_interleave(value_states, dim=1, repeats=self.num_key_value_groups)
+        
         # Apply attention
         attn_weights = torch.matmul(query_states, key_states.transpose(-2, -1)) / math.sqrt(self.head_dim)
         if attention_mask is not None:
-            attn_weights = attn_weights + attention_mask
+            attn_weights = attn_weights + mask
         attn_weights = F.softmax(attn_weights, dim=-1)
         
         attn_output = torch.matmul(attn_weights, value_states)
+        attn_output = attn_output.transpose(1, 2).contiguous()  # (batch, seq_len, n_heads, head_dim)
         attn_output = attn_output.reshape(batch_size, seq_length, self.hidden_size)
         attn_output = self.o_proj(attn_output)
         
