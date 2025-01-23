@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional, Tuple
+from transformers import PreTrainedModel, PretrainedConfig
 
 class LlamaRMSNorm(nn.Module):
     def __init__(self, hidden_size: int, eps: float = 1e-5):
@@ -149,9 +150,52 @@ class LlamaModel(nn.Module):
         hidden_states = self.norm(hidden_states)
         return hidden_states
 
-class LlamaForCausalLM(nn.Module):
+class LlamaConfig(PretrainedConfig):
+    model_type = "llama"
+    
+    def __init__(
+        self,
+        vocab_size=32000,
+        hidden_size=4096,
+        intermediate_size=11008,
+        num_hidden_layers=32,
+        num_attention_heads=32,
+        num_key_value_heads=None,
+        hidden_act="silu",
+        max_position_embeddings=2048,
+        initializer_range=0.02,
+        rms_norm_eps=1e-6,
+        use_cache=True,
+        pad_token_id=None,
+        bos_token_id=1,
+        eos_token_id=2,
+        tie_word_embeddings=False,
+        **kwargs,
+    ):
+        self.vocab_size = vocab_size
+        self.hidden_size = hidden_size
+        self.intermediate_size = intermediate_size
+        self.num_hidden_layers = num_hidden_layers
+        self.num_attention_heads = num_attention_heads
+        self.num_key_value_heads = num_key_value_heads
+        self.hidden_act = hidden_act
+        self.max_position_embeddings = max_position_embeddings
+        self.initializer_range = initializer_range
+        self.rms_norm_eps = rms_norm_eps
+        self.use_cache = use_cache
+        super().__init__(
+            pad_token_id=pad_token_id,
+            bos_token_id=bos_token_id,
+            eos_token_id=eos_token_id,
+            tie_word_embeddings=tie_word_embeddings,
+            **kwargs,
+        )
+
+class LlamaForCausalLM(PreTrainedModel):
+    config_class = LlamaConfig
+    
     def __init__(self, config):
-        super().__init__()
+        super().__init__(config)
         self.model = LlamaModel(config)
         self.lm_head = nn.Linear(config["hidden_size"], config["vocab_size"], bias=False)
         
@@ -166,5 +210,7 @@ class LlamaForCausalLM(nn.Module):
 
 # Example usage:
 def create_model_from_config(config_dict):
-    model = LlamaForCausalLM(config_dict)
+    """Create model from config dictionary"""
+    config = LlamaConfig(**config_dict)
+    model = LlamaForCausalLM(config)
     return model

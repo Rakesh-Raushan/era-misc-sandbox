@@ -1,3 +1,6 @@
 [submodule "Assignment_9/ResNet-Explorer"]
 	path = Assignment_9/ResNet-Explorer
 	url = ./Assignment_9/ResNet-Explorer
+[submodule "Assignment_13/smolLm2-implementation"]
+	path = Assignment_13/smolLm2-implementation
+	url = ./Assignment_13/smolLm2-implementation
