@@ -4,8 +4,7 @@ This project implements training and fine-tuning code for a LLaMA-based language
 
 ## Try it out!
 
-- 🤗 [Model on Hugging Face Hub](https://huggingface.co/your-username/smollm2-implementation)
-- 🚀 [Live Demo](https://huggingface.co/spaces/your-username/smollm2-implementation)
+- 🚀 [Live Demo](https://huggingface.co/spaces/Perpetualquest/smolLm2-implementation)
 
 ## Model Definition
 
